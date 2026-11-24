@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Advanced Library Management</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:linear-gradient(135deg,#1e3c72,#2a5298);
+min-height:100vh;
+padding:40px;
+display:flex;
+justify-content:center;
+align-items:flex-start;
+}
+
+.container{
+width:100%;
+max-width:950px;
+background:white;
+padding:30px;
+border-radius:20px;
+box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+h1{
+text-align:center;
+margin-bottom:25px;
+color:#1e3c72;
+}
+
+.form-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:15px;
+margin-bottom:20px;
+}
+
+.form-grid input{
+padding:14px;
+border:1px solid #ccc;
+border-radius:10px;
+font-size:16px;
+}
+
+.full{
+grid-column:span 2;
+}
+
+button{
+padding:12px 18px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:15px;
+}
+
+.issue-btn{
+background:#1e3c72;
+color:white;
+width:100%;
+margin-bottom:20px;
+}
+
+.search{
+width:100%;
+padding:14px;
+border-radius:10px;
+border:1px solid #ccc;
+margin-bottom:25px;
+font-size:16px;
+}
+
+.card{
+background:#f4f6f9;
+padding:20px;
+border-radius:15px;
+margin-bottom:15px;
+box-shadow:0 5px 10px rgba(0,0,0,0.1);
+}
+
+.name{
+font-size:22px;
+font-weight:bold;
+color:#1e3c72;
+margin-bottom:10px;
+}
+
+.info{
+margin-bottom:8px;
+}
+
+.status{
+display:inline-block;
+padding:6px 12px;
+border-radius:20px;
+font-size:14px;
+font-weight:bold;
+margin-top:10px;
+}
+
+.issued{
+background:#ffcccc;
+color:red;
+}
+
+.returned{
+background:#ccffcc;
+color:green;
+}
+
+.actions{
+margin-top:15px;
+}
+
+.return-btn{
+background:#28a745;
+color:white;
+margin-right:10px;
+}
+
+.delete-btn{
+background:#dc3545;
+color:white;
+}
+
+.empty{
+text-align:center;
+padding:20px;
+font-size:20px;
+color:gray;
+}
+
+@media(max-width:700px){
+
+.form-grid{
+grid-template-columns:1fr;
+}
+
+.full{
+grid-column:span 1;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📚 Advanced Library Management</h1>
+
+<div class="form-grid">
+
+<input id="studentId" placeholder="Student ID">
+
+<input id="studentName" placeholder="Student Name">
+
+<input id="bookName" class="full" placeholder="Book Name">
+
+</div>
+
+<button class="issue-btn" onclick="issueBook()">
+Issue Book
+</button>
+
+<input
+class="search"
+id="searchBox"
+placeholder="Search Student..."
+onkeyup="fetchBooks()"
+>
+
+<div id="bookList"></div>
+
+</div>
+
+<script>
+
+const api="/api/books";
+
+async function issueBook(){
+
+const data={
+studentId:document.getElementById("studentId").value.trim(),
+studentName:document.getElementById("studentName").value.trim(),
+bookName:document.getElementById("bookName").value.trim()
+};
+
+if(!data.studentId || !data.studentName || !data.bookName){
+alert("All fields required");
+return;
+}
+
+const res=await fetch(api,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(data)
+});
+
+const result=await res.json();
+
+if(!res.ok){
+alert(result.error);
+return;
+}
+
+document.getElementById("studentId").value="";
+document.getElementById("studentName").value="";
+document.getElementById("bookName").value="";
+
+fetchBooks();
+}
+
+async function fetchBooks(){
+
+const search=document.getElementById("searchBox").value;
+
+const res=await fetch(`${api}?search=${search}`);
+
+const books=await res.json();
+
+const list=document.getElementById("bookList");
+
+list.innerHTML="";
+
+if(books.length===0){
+
+list.innerHTML=`
+<div class="empty">
+No Records Found
+</div>
+`;
+
+return;
+}
+
+books.forEach(book=>{
+
+const card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+
+<div class="name">
+${book.studentName}
+</div>
+
+<div class="info">
+<b>Student ID:</b> ${book.studentId}
+</div>
+
+<div class="info">
+<b>Book:</b> ${book.bookName}
+</div>
+
+<div class="status ${book.status==="Issued"?"issued":"returned"}">
+${book.status}
+</div>
+
+<div class="actions">
+
+<button
+class="return-btn"
+onclick="returnBook('${book.studentId}')">
+Return
+</button>
+
+<button
+class="delete-btn"
+onclick="deleteBook('${book.studentId}')">
+Delete
+</button>
+
+</div>
+
+`;
+
+list.appendChild(card);
+
+});
+
+}
+
+async function returnBook(id){
+
+await fetch(`${api}/return/${id}`,{
+method:"PUT"
+});
+
+fetchBooks();
+}
+
+async function deleteBook(id){
+
+await fetch(`${api}/${id}`,{
+method:"DELETE"
+});
+
+fetchBooks();
+}
+
+fetchBooks();
+
+</script>
+
+</body>
+</html>
